@@ -1,51 +1,148 @@
 /// @ 0.13.3
 ### {
-    name: "通知からリアクションを取得するプラグイン"
-    version: "0.1.0"
-    author: "はとぽぷ"
-    description: "通知のリアクションを取得"
-    permissions: ["read:notifications"]
-    config: {}
+  name: "通知からリアクションを取得するプラグイン",
+  version: "0.1.0",
+  author: "はとぽぷ",
+  description: "通知のリアクションを取得",
+  permissions: ["read:notifications"],
+  config: {
+    notificationLimit: {
+      type: "number",
+      label: "通知の取得数",
+      description: "APIの制限により最大100です。",
+      default: 100
+    },
+    dialogDestroyerLimit: {
+      type: "number",
+      label: "ダイアログの最大ユーザー数",
+      description: "",
+      default: 20
+    },
+    resultDestroyerLimit: {
+      type: "number",
+      label: "投稿用テキストの最大ユーザー数",
+      description: "",
+      default: 3
+    },
+    dialogReactionMin: {
+      type: "number",
+      label: "ダイアログに表示する最低リアクション数",
+      description: "",
+      default: 1
+    },
+    resultReactionMin: {
+      type: "number",
+      label: "投稿用テキストに表示する最低リアクション数",
+      description: "",
+      default: 1
+    },
+    dialogReactionCountVisible: {
+      type: "boolean",
+      label: "ダイアログのリアクション数表示",
+      description: "",
+      default: true
+    },
+    resultReactionCountVisible: {
+      type: "boolean",
+      label: "投稿用テキストのリアクション数表示",
+      description: "",
+      default: false
+    },
+    dialogHeaderText: {
+      type: "string",
+      label: "ダイアログのヘッダーテキスト",
+      description: "",
+      default: "<center>$[twitch.speed=0.5s $[rainbow.speed=3s $[flip :murakamisan_tutinoko_omae_wo_miteiru:]:omae_wo_miteiru2::tuuti_hakai::role_notification_destroyer::tuuti_hakai::omae_wo_miteiru2::murakamisan_tutinoko_omae_wo_miteiru:]]</center>"
+    },
+    resultHeaderText: {
+      type: "string",
+      label: "投稿用テキストのヘッダーテキスト",
+      description: "",
+      default: ":role_notification_destroyer::murakamisan_tutinoko_omae_wo_miteiru:"
+    },
+    resultUserSuffixText: {
+      type: "string",
+      label: "投稿用テキストのユーザー末尾テキスト",
+      description: "",
+      default: "$[flip :meowpensivepray:]"
+    },
+    dialogReactionSeparator: {
+      type: "string",
+      label: "ダイアログのReaction間セパレータ",
+      description: "",
+      default: ""
+    },
+    resultReactionSeparator: {
+      type: "string",
+      label: "投稿用テキストでのReaction間セパレータ",
+      description: "",
+      default: ""
+    },
+    hostUrl: {
+      type: "string",
+      label: "Host URL",
+      description: "※一先ず動作優先のため現在はリモートに対応してません。",
+      default: "https://misskey.io"
+    },
+    urlIcon: {
+      type: "string",
+      label: "ダイアログのユーザーアイコン",
+      description: "",
+      default: ":ai_panic_misskeyio:"
+    }
+  }
 }
 
-@get_notifications(t) {
-    // -----------------------------------------------------------------
-    // parameter 以下のパラメータを必要に応じて変更してください
-    // -----------------------------------------------------------------
-    // 通知の取得数です。APIの制限により現在は最大100です。
-    var notificationLimit = 100
-    // ダイアログに表示する最大ユーザー数です。
-    var dialogDestroyerLimit = 20
-    // 投稿用テキストに表示する最大ユーザー数です。
-    var resultDestroyerLimit = 3
-    // ダイアログに表示する最低リアクション数です。
-    var dialogReactionMin = 1
-    // 投稿用テキストに表示する最低リアクション数です。
-    var resultReactionMin = 1
-    // ダイアログにリアクション数です。
-    var dialogReactionCountVisible = true
-    // 投稿用テキストに表示する最低リアクション数です。
-    var resultReactionCountVisible = false
-    // ダイアログの一覧のヘッダーのタイトルテキストです。
-    var dialogHeaderText = "<center>$[twitch.speed=0.5s $[rainbow.speed=3s $[flip :murakamisan_tutinoko_omae_wo_miteiru:]:omae_wo_miteiru2::tuuti_hakai::role_notification_destroyer::tuuti_hakai::omae_wo_miteiru2::murakamisan_tutinoko_omae_wo_miteiru:]]</center>"
-    // 投稿用テキストのヘッダーのタイトルテキストです。
-    var resultHeaderText = ":role_notification_destroyer::murakamisan_tutinoko_omae_wo_miteiru:"
-    // 投稿用テキストのユーザーの末尾につけるテキストです。
-    var resultUserSuffixText = "$[flip :meowpensivepray:]"
-    // ダイアログの一覧のReaction間のセパレータです。
-    var dialogReactionSeparator = ""
-    // 投稿用テキストでのReaction間のセパレータです。
-    var resultReactionSeparator = ""
-    // hostのURLです。一先ず動作優先のため現在はリモートに対応してません。
-    var hostUrl = "https://misskey.io"
-    // ダイアログの一覧のユーザーの左側に出すアイコンです。
-    var urlIcon = ":ai_panic_misskeyio:"
-    // -----------------------------------------------------------------
+// configに値がない場合デフォルト値を取得
+@getConfigValue(configValue, defaultValue) {
+    if (configValue != null) {
+        configValue
+    } else {
+        defaultValue
+    }
+}
 
-    var r = "通知破壊などありません"
+@misskeyDestroyerWatch(overrideResultText) {
+    // -----------------------------------------------------------------
+    // setting parameters
+    // -----------------------------------------------------------------
+    // 設定を取得
+    let config = Plugin:config
+    // 通知の取得数です。APIの制限により現在は最大100です。
+    var notificationLimit = getConfigValue(config.notificationLimit, 100)
+    // ダイアログに表示する最大ユーザー数です。
+    var dialogDestroyerLimit = getConfigValue(config.dialogDestroyerLimit, 20)
+    // 投稿用テキストに表示する最大ユーザー数です。
+    var resultDestroyerLimit = getConfigValue(config.resultDestroyerLimit, 3)
+    // ダイアログに表示する最低リアクション数です。
+    var dialogReactionMin = getConfigValue(config.dialogReactionMin, 1)
+    // 投稿用テキストに表示する最低リアクション数です。
+    var resultReactionMin = getConfigValue(config.resultReactionMin, 1)
+    // ダイアログにリアクション数です。
+    var dialogReactionCountVisible = getConfigValue(config.dialogReactionCountVisible, true)
+    // 投稿用テキストに表示する最低リアクション数です。
+    var resultReactionCountVisible = getConfigValue(config.resultReactionCountVisible, false)
+    // ダイアログの一覧のヘッダーのタイトルテキストです。
+    var dialogHeaderText = getConfigValue(config.dialogHeaderText, "<center>Default Header Text</center>")
+    // 投稿用テキストのヘッダーのタイトルテキストです。
+    var resultHeaderText = getConfigValue(config.resultHeaderText, "Default Header")
+    // 投稿用テキストのユーザーの末尾につけるテキストです。
+    var resultUserSuffixText = getConfigValue(config.resultUserSuffixText, "Default Suffix")
+    // ダイアログの一覧のReaction間のセパレータです。
+    var dialogReactionSeparator = getConfigValue(config.dialogReactionSeparator, "")
+    // 投稿用テキストでのReaction間のセパレータです。
+    var resultReactionSeparator = getConfigValue(config.resultReactionSeparator, "")
+    // hostのURLです。一先ず動作優先のため現在はリモートに対応してません。
+    var hostUrl = getConfigValue(config.hostUrl, "https://misskey.io")
+    // ダイアログの一覧のユーザーの左側に出すアイコンです。
+    var urlIcon = getConfigValue(config.urlIcon, ":default_icon:")
+    // -----------------------------------------------------------------
+    var resultText = "通知破壊などありません"
     // 注記。
     var dialogCautionText = "<center><small>※このプラグインは直近最大100件の通知を取得するものです。通知で埋もれてしまうユーザーの通知の確認はユーザー名右クリックで新しいタブを開くなどで飛んでください。</small></center>"
+    // -----------------------------------------------------------------
 
+    // Misskey APIから通知の取得
     let res = Mk:api("i/notifications" {limit: notificationLimit})
 
     // ユーザーとリアクションを保存するためのオブジェクト
@@ -137,10 +234,16 @@
     }
     // 結合
     let dialogText = dialogTextList.join(Str:lf)
-    r = resultTextList.join(Str:lf)
+
+    if (overrideResultText == true) {
+        resultText = resultTextList.join(Str:lf)
+    } else {
+        resultText = overrideResultText
+    }
+    // resultText = resultTextList.join(Str:lf)
     // ダイアログに表示
     Mk:dialog(null dialogText)
-r}
+resultText}
 
-Plugin:register_post_form_action("直近100件の通知からリアクションを取得！" @(f u) {u("text" get_notifications(f.text))
-})
+Plugin:register_post_form_action("[投稿]直近100件の通知からリアクションを取得！" @(f u) {u("text" misskeyDestroyerWatch(true))})
+Plugin:register_post_form_action("[閲覧]直近100件の通知からリアクションを取得！" @(f u) {u("text" misskeyDestroyerWatch(f.text))})
