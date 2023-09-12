@@ -1,0 +1,146 @@
+/// @ 0.13.3
+### {
+    name: "通知からリアクションを取得するプラグイン"
+    version: "0.1.0"
+    author: "はとぽぷ"
+    description: "通知のリアクションを取得"
+    permissions: ["read:notifications"]
+    config: {}
+}
+
+@get_notifications(t) {
+    // -----------------------------------------------------------------
+    // parameter 以下のパラメータを必要に応じて変更してください
+    // -----------------------------------------------------------------
+    // 通知の取得数です。APIの制限により現在は最大100です。
+    var notificationLimit = 100
+    // ダイアログに表示する最大ユーザー数です。
+    var dialogDestroyerLimit = 20
+    // 投稿用テキストに表示する最大ユーザー数です。
+    var resultDestroyerLimit = 3
+    // ダイアログに表示する最低リアクション数です。
+    var dialogReactionMin = 1
+    // 投稿用テキストに表示する最低リアクション数です。
+    var resultReactionMin = 1
+    // ダイアログにリアクション数です。
+    var dialogReactionCountVisible = true
+    // 投稿用テキストに表示する最低リアクション数です。
+    var resultReactionCountVisible = false
+    // ダイアログの一覧のヘッダーのタイトルテキストです。
+    var dialogHeaderText = "<center>$[twitch.speed=0.5s $[rainbow.speed=3s $[flip :murakamisan_tutinoko_omae_wo_miteiru:]:omae_wo_miteiru2::tuuti_hakai::role_notification_destroyer::tuuti_hakai::omae_wo_miteiru2::murakamisan_tutinoko_omae_wo_miteiru:]]</center>"
+    // 投稿用テキストのヘッダーのタイトルテキストです。
+    var resultHeaderText = ":role_notification_destroyer::murakamisan_tutinoko_omae_wo_miteiru:"
+    // 投稿用テキストのユーザーの末尾につけるテキストです。
+    var resultUserSuffixText = "$[flip :meowpensivepray:]"
+    // ダイアログの一覧のReaction間のセパレータです。
+    var dialogReactionSeparator = ""
+    // 投稿用テキストでのReaction間のセパレータです。
+    var resultReactionSeparator = ""
+    // hostのURLです。一先ず動作優先のため現在はリモートに対応してません。
+    var hostUrl = "https://misskey.io"
+    // ダイアログの一覧のユーザーの左側に出すアイコンです。
+    var urlIcon = ":ai_panic_misskeyio:"
+    // -----------------------------------------------------------------
+
+    var r = "通知破壊などありません"
+    // 注記。
+    var dialogCautionText = "<center><small>※このプラグインは直近最大100件の通知を取得するものです。通知で埋もれてしまうユーザーの通知の確認はユーザー名右クリックで新しいタブを開くなどで飛んでください。</small></center>"
+
+    let res = Mk:api("i/notifications" {limit: notificationLimit})
+
+    // ユーザーとリアクションを保存するためのオブジェクト
+    let userReactionCount = {}
+    let userIdList = []
+    let countList = []
+
+    each (let notif res) {
+        if (notif.type == 'reaction') {
+            let userId = notif.user.id
+            let userName = notif.user.name
+
+            // userのリストの追加
+            if (!userIdList.incl(userId)) {
+            userIdList.push(userId)
+            }
+
+            // userReactionCountにuserIdがなければ初期化
+            if (Obj:has(userReactionCount, userId) == false) {
+            Obj:set(userReactionCount, userId, { user: notif.user, reactions: [] })
+            }
+
+            // リアクションを取得
+            let reaction = notif.reaction
+            let userReactions = Obj:get(Obj:get(userReactionCount, userId), 'reactions')
+
+            // リアクションをユーザーに追加
+            userReactions.push(reaction)
+        }
+    }
+
+    // countListに各リアクション数の追加
+    each (let userId userIdList){
+        let userReactions = Obj:get(Obj:get(userReactionCount, userId), 'reactions')
+        countList.push(userReactions.len)
+    }
+
+    // userIdListのsort
+    let sortedIndices = []
+    for (let i, countList.len) {
+        sortedIndices.push(i)
+    }
+
+    sortedIndices.sort(@(a, b) {
+        return countList[b] - countList[a]
+    })
+
+    let sortedUserIdList = []
+    let sortedCountList = []
+
+    each (let i sortedIndices) {
+        sortedUserIdList.push(userIdList[i])
+        sortedCountList.push(countList[i])
+    }
+
+    let dialogTextList = []
+    let resultTextList = []
+
+    dialogTextList.push(dialogHeaderText)
+    dialogTextList.push(dialogCautionText)
+    resultTextList.push(resultHeaderText)
+
+    var destroyerCount = 0
+
+    // 最終テキストの生成
+    each (let userId sortedUserIdList){
+        let user = Obj:get(Obj:get(userReactionCount, userId), 'user')
+        let userReactions = Obj:get(Obj:get(userReactionCount, userId), 'reactions')
+        let userLink = `[{urlIcon}]({hostUrl}/@{user.username})` // 暫定、リモートユーザー非対応のため修正予定
+        var dialogReactionCountText = userReactions.len
+        if (dialogReactionCountVisible == false) {
+            dialogReactionCountText = ""
+        }
+
+        var resultReactionCountText = userReactions.len
+        if (resultReactionCountVisible == false) {
+            resultReactionCountText = ""
+        }
+
+        if (dialogDestroyerLimit > destroyerCount && userReactions.len >= dialogReactionMin) {
+            let dialogUserReactions = userReactions.join(`{dialogReactionSeparator}`)
+            dialogTextList.push(`{userLink}@{user.username}:tyan: {dialogReactionCountText} {dialogUserReactions}`)
+        }
+        if (resultDestroyerLimit > destroyerCount && userReactions.len >= dialogReactionMin) {
+            let resultUserReactions = userReactions.join(`{resultReactionSeparator}`)
+            resultTextList.push(`@{user.username}:tyan: {resultReactionCountText} {resultUserSuffixText}{Str:lf}{resultUserReactions}{Str:lf}`)
+        }
+        destroyerCount = destroyerCount + 1
+    }
+    // 結合
+    let dialogText = dialogTextList.join(Str:lf)
+    r = resultTextList.join(Str:lf)
+    // ダイアログに表示
+    Mk:dialog(null dialogText)
+r}
+
+Plugin:register_post_form_action("直近100件の通知からリアクションを取得！" @(f u) {u("text" get_notifications(f.text))
+})
