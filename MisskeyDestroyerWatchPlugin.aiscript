@@ -1,9 +1,9 @@
 /// @ 0.13.3
 ### {
-  name: "通知からリアクションを取得するプラグイン",
+  name: "通知からリアクションを一覧で表示するプラグイン",
   version: "0.1.0",
   author: "はとぽぷ",
-  description: "通知のリアクションを取得",
+  description: "直近100件の通知のリアクションを取得",
   permissions: ["read:notifications"],
   config: {
     notificationLimit: {
@@ -15,84 +15,80 @@
     dialogDestroyerLimit: {
       type: "number",
       label: "ダイアログの最大ユーザー数",
-      description: "",
       default: 20
     },
     resultDestroyerLimit: {
       type: "number",
       label: "投稿用テキストの最大ユーザー数",
-      description: "",
       default: 3
     },
     dialogReactionMin: {
       type: "number",
       label: "ダイアログに表示する最低リアクション数",
-      description: "",
       default: 1
     },
     resultReactionMin: {
       type: "number",
       label: "投稿用テキストに表示する最低リアクション数",
-      description: "",
       default: 1
     },
     dialogReactionCountVisible: {
       type: "boolean",
       label: "ダイアログのリアクション数表示",
-      description: "",
       default: true
     },
     resultReactionCountVisible: {
       type: "boolean",
       label: "投稿用テキストのリアクション数表示",
-      description: "",
       default: false
+    },
+    dialogReactionVisible: {
+      type: "boolean",
+      label: "ダイアログのリアクション詳細表示",
+      default: true
+    },
+    resultReactionVisible: {
+      type: "boolean",
+      label: "投稿用テキストのリアクション詳細表示",
+      default: true
     },
     dialogHeaderText: {
       type: "string",
       label: "ダイアログのヘッダーテキスト",
-      description: "",
       default: "<center>$[twitch.speed=0.5s $[rainbow.speed=3s $[flip :murakamisan_tutinoko_omae_wo_miteiru:]:omae_wo_miteiru2::tuuti_hakai::role_notification_destroyer::tuuti_hakai::omae_wo_miteiru2::murakamisan_tutinoko_omae_wo_miteiru:]]</center>"
     },
     resultHeaderText: {
       type: "string",
       label: "投稿用テキストのヘッダーテキスト",
-      description: "",
       default: ":role_notification_destroyer::murakamisan_tutinoko_omae_wo_miteiru:"
+    },
+    usernameSuffixText: {
+      type: "string",
+      label: "ユーザー名の語尾につけるテキスト",
+      default: ":tyan:"
+    },
+    dialogUserPrefixText: {
+      type: "string",
+      label: "ダイアログのユーザー接頭辞テキスト",
+      default: ":ai_panic_misskeyio:"
     },
     resultUserSuffixText: {
       type: "string",
       label: "投稿用テキストのユーザー末尾テキスト",
-      description: "",
-      default: "$[flip :meowpensivepray:]"
+      default: ":arigatofes:$[flip :meowpensivepray:]"
     },
     dialogReactionSeparator: {
       type: "string",
       label: "ダイアログのReaction間セパレータ",
-      description: "",
       default: ""
     },
     resultReactionSeparator: {
       type: "string",
       label: "投稿用テキストでのReaction間セパレータ",
-      description: "",
       default: ""
-    },
-    hostUrl: {
-      type: "string",
-      label: "Host URL",
-      description: "※一先ず動作優先のため現在はリモートに対応してません。",
-      default: "https://misskey.io"
-    },
-    urlIcon: {
-      type: "string",
-      label: "ダイアログのユーザーアイコン",
-      description: "",
-      default: ":ai_panic_misskeyio:"
     }
   }
 }
-
 // configに値がない場合デフォルト値を取得
 @getConfigValue(configValue, defaultValue) {
     if (configValue != null) {
@@ -108,54 +104,11 @@
     result
 }
 
-@misskeyDestroyerWatch(overrideResultText) {
-    // -----------------------------------------------------------------
-    // setting parameters
-    // -----------------------------------------------------------------
-    // 設定を取得
-    let config = Plugin:config
-    // 通知の取得数です。APIの制限により現在は最大100です。
-    var notificationLimit = getConfigValue(config.notificationLimit, 100)
-    // ダイアログに表示する最大ユーザー数です。
-    var dialogDestroyerLimit = getConfigValue(config.dialogDestroyerLimit, 20)
-    // 投稿用テキストに表示する最大ユーザー数です。
-    var resultDestroyerLimit = getConfigValue(config.resultDestroyerLimit, 3)
-    // ダイアログに表示する最低リアクション数です。
-    var dialogReactionMin = getConfigValue(config.dialogReactionMin, 1)
-    // 投稿用テキストに表示する最低リアクション数です。
-    var resultReactionMin = getConfigValue(config.resultReactionMin, 1)
-    // ダイアログにリアクション数です。
-    var dialogReactionCountVisible = getConfigValue(config.dialogReactionCountVisible, true)
-    // 投稿用テキストに表示する最低リアクション数です。
-    var resultReactionCountVisible = getConfigValue(config.resultReactionCountVisible, false)
-    // ダイアログの一覧のヘッダーのタイトルテキストです。
-    var dialogHeaderText = getConfigValue(config.dialogHeaderText, "<center>Default Header Text</center>")
-    // 投稿用テキストのヘッダーのタイトルテキストです。
-    var resultHeaderText = getConfigValue(config.resultHeaderText, "Default Header")
-    // 投稿用テキストのユーザーの末尾につけるテキストです。
-    var resultUserSuffixText = getConfigValue(config.resultUserSuffixText, "Default Suffix")
-    // ダイアログの一覧のReaction間のセパレータです。
-    var dialogReactionSeparator = getConfigValue(config.dialogReactionSeparator, "")
-    // 投稿用テキストでのReaction間のセパレータです。
-    var resultReactionSeparator = getConfigValue(config.resultReactionSeparator, "")
-    // hostのURLです。一先ず動作優先のため現在はリモートに対応してません。
-    var hostUrl = getConfigValue(config.hostUrl, "https://misskey.io")
-    // ダイアログの一覧のユーザーの左側に出すアイコンです。
-    var urlIcon = getConfigValue(config.urlIcon, ":default_icon:")
-    // -----------------------------------------------------------------
-    var resultText = "通知破壊などありません"
-    // 注記。
-    var dialogCautionText = "<center><small>※このプラグインは直近最大100件の通知を取得するものです。通知で埋もれてしまうユーザーの通知の確認はユーザー名右クリックで新しいタブを開くなどで飛んでください。</small></center>"
-    // -----------------------------------------------------------------
-
-    // Misskey APIから通知の取得
-    // let res = Mk:api("i/notifications" {limit: notificationLimit})
-    let notifications = getNotifications(notificationLimit)
-
+// ユーザーとリアクションを集計
+@aggregateUserReactions(notifications) {
     // ユーザーとリアクションを保存するためのオブジェクト
     let userReactionCount = {}
     let userIdList = []
-    let countList = []
 
     each (let notif notifications) {
         if (notif.type == 'reaction') {
@@ -164,12 +117,12 @@
 
             // userのリストの追加
             if (!userIdList.incl(userId)) {
-            userIdList.push(userId)
+                userIdList.push(userId)
             }
 
             // userReactionCountにuserIdがなければ初期化
             if (Obj:has(userReactionCount, userId) == false) {
-            Obj:set(userReactionCount, userId, { user: notif.user, reactions: [] })
+                Obj:set(userReactionCount, userId, { user: notif.user, reactions: [] })
             }
 
             // リアクションを取得
@@ -182,12 +135,30 @@
     }
 
     // countListに各リアクション数の追加
+    let countList = []
     each (let userId userIdList){
         let userReactions = Obj:get(Obj:get(userReactionCount, userId), 'reactions')
         countList.push(userReactions.len)
     }
 
-    // userIdListのsort
+    let resultObj = {}
+    Obj:set(resultObj, "userReactionCount", userReactionCount)
+    Obj:set(resultObj, "userIdList", userIdList)
+    Obj:set(resultObj, "countList", countList)
+    resultObj
+}
+
+// indexに基づいてソート
+@sortByIndices(sortedIndices, targetList) {
+    let sortedList = []
+    each (let i sortedIndices) {
+        sortedList.push(targetList[i])
+    }
+    sortedList
+}
+
+// ソート処理
+@sortUsersByReaction(userIdList, countList) {
     let sortedIndices = []
     for (let i, countList.len) {
         sortedIndices.push(i)
@@ -197,57 +168,96 @@
         return countList[b] - countList[a]
     })
 
-    let sortedUserIdList = []
-    let sortedCountList = []
+    let sortedUserIdList = sortByIndices(sortedIndices, userIdList)
+    let sortedCountList = sortByIndices(sortedIndices, countList)
 
-    each (let i sortedIndices) {
-        sortedUserIdList.push(userIdList[i])
-        sortedCountList.push(countList[i])
-    }
+    let sortedObj = {}
+    Obj:set(sortedObj, "sortedUserIdList", sortedUserIdList)
+    Obj:set(sortedObj, "sortedCountList", sortedCountList)
+    sortedObj
+}
 
+@createUserTextLists(sortedUserIdList, userReactionCount, overrideResultText, config) {
+    // -----------------------------------------------------------------
+    var resultText = "通知破壊などありません"
+    // 注記。
+    var dialogCautionText = "<center><small>※このプラグインは直近最大100件の通知を取得するものです。ユーザーのページへの遷移はユーザー名右クリックで新しいタブを開くなどで飛んでください。</small></center>"
+    // -----------------------------------------------------------------
+
+    // ダイアログと投稿用テキストの作成
     let dialogTextList = []
     let resultTextList = []
-
-    dialogTextList.push(dialogHeaderText)
-    dialogTextList.push(dialogCautionText)
-    resultTextList.push(resultHeaderText)
-
     var destroyerCount = 0
+    dialogTextList.push(config.dialogHeaderText)
+    dialogTextList.push(dialogCautionText)
+    resultTextList.push(config.resultHeaderText)
 
-    // 最終テキストの生成
     each (let userId sortedUserIdList){
         let user = Obj:get(Obj:get(userReactionCount, userId), 'user')
         let userReactions = Obj:get(Obj:get(userReactionCount, userId), 'reactions')
-        let userLink = `[{urlIcon}]({hostUrl}/@{user.username})` // 暫定、リモートユーザー非対応のため修正予定
+        // let dialogUserPrefixText = `[{config.urlIcon}]({config.hostUrl}/@{user.username})` // 暫定、リモートユーザー非対応のため修正予定
         var dialogReactionCountText = userReactions.len
-        if (dialogReactionCountVisible == false) {
+        if (config.dialogReactionCountVisible == false) {
             dialogReactionCountText = ""
         }
 
         var resultReactionCountText = userReactions.len
-        if (resultReactionCountVisible == false) {
+        if (config.resultReactionCountVisible == false) {
             resultReactionCountText = ""
         }
 
-        if (dialogDestroyerLimit > destroyerCount && userReactions.len >= dialogReactionMin) {
-            let dialogUserReactions = userReactions.join(`{dialogReactionSeparator}`)
-            dialogTextList.push(`{userLink}@{user.username}:tyan: {dialogReactionCountText} {dialogUserReactions}`)
+        if (config.dialogDestroyerLimit > destroyerCount && userReactions.len >= config.dialogReactionMin) {
+            let dialogUserReactions = userReactions.join(`{config.dialogReactionSeparator}`)
+            if (config.dialogReactionVisible == false) {
+                dialogUserReactions = ""
+            }
+            dialogTextList.push(`{config.dialogUserPrefixText}@{user.username}:tyan: {dialogReactionCountText} {dialogUserReactions}`)
         }
-        if (resultDestroyerLimit > destroyerCount && userReactions.len >= dialogReactionMin) {
-            let resultUserReactions = userReactions.join(`{resultReactionSeparator}`)
-            resultTextList.push(`@{user.username}:tyan: {resultReactionCountText} {resultUserSuffixText}{Str:lf}{resultUserReactions}{Str:lf}`)
+        if (config.resultDestroyerLimit > destroyerCount && userReactions.len >= config.dialogReactionMin) {
+            let resultUserReactions = userReactions.join(`{config.resultReactionSeparator}`)
+            if (config.resultReactionVisible == false) {
+                resultUserReactions = ""
+            }
+            resultTextList.push(`@{user.username}:tyan: {resultReactionCountText} {config.resultUserSuffixText}{Str:lf}{resultUserReactions}{Str:lf}`)
         }
         destroyerCount = destroyerCount + 1
     }
     // 結合
     let dialogText = dialogTextList.join(Str:lf)
-
     if (overrideResultText == true) {
         resultText = resultTextList.join(Str:lf)
     } else {
         resultText = overrideResultText
     }
-    // resultText = resultTextList.join(Str:lf)
+    let resultTextObj = {}
+    Obj:set(resultTextObj, "dialogText", dialogText)
+    Obj:set(resultTextObj, "resultText", resultText)
+    resultTextObj
+}
+
+@misskeyDestroyerWatch(overrideResultText) {
+    // 設定を取得
+    let config = Plugin:config
+    // 通知の取得数です。APIの制限により現在は最大100です。
+    var notificationLimit = getConfigValue(config.notificationLimit, 100)
+    // Misskey APIから通知の取得
+    let notifications = getNotifications(notificationLimit)
+
+    // ユーザーとリアクションを保存するためのオブジェクト
+    let userReactionObj = aggregateUserReactions(notifications)
+    let userReactionCount = Obj:get(userReactionObj, "userReactionCount")
+    let userIdList = Obj:get(userReactionObj, "userIdList")
+    let countList = Obj:get(userReactionObj, "countList")
+
+    // リアクション数順にソートしたオブジェクト
+    let sortedObj = sortUsersByReaction(userIdList, countList)
+    let sortedUserIdList = Obj:get(sortedObj, "sortedUserIdList")
+
+    // ダイアログと投稿用テキストの作成
+    let resultTextObj = createUserTextLists(sortedUserIdList, userReactionCount, overrideResultText, config)
+    let dialogText = Obj:get(resultTextObj, "dialogText")
+    let resultText = Obj:get(resultTextObj, "resultText")
+
     // ダイアログに表示
     Mk:dialog(null dialogText)
 resultText}
