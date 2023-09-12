@@ -102,6 +102,12 @@
     }
 }
 
+// APIからの通知を取得
+@getNotifications(limit) {
+    let result = Mk:api("i/notifications", {limit: limit})
+    result
+}
+
 @misskeyDestroyerWatch(overrideResultText) {
     // -----------------------------------------------------------------
     // setting parameters
@@ -143,14 +149,15 @@
     // -----------------------------------------------------------------
 
     // Misskey APIから通知の取得
-    let res = Mk:api("i/notifications" {limit: notificationLimit})
+    // let res = Mk:api("i/notifications" {limit: notificationLimit})
+    let notifications = getNotifications(notificationLimit)
 
     // ユーザーとリアクションを保存するためのオブジェクト
     let userReactionCount = {}
     let userIdList = []
     let countList = []
 
-    each (let notif res) {
+    each (let notif notifications) {
         if (notif.type == 'reaction') {
             let userId = notif.user.id
             let userName = notif.user.name
