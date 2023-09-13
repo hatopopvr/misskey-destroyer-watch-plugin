@@ -12,29 +12,50 @@
       description: "APIの制限により最大100です。",
       default: 100
     },
+    usernameSuffixText: {
+      type: "string",
+      label: "ユーザー名の語尾につけるテキスト",
+      default: ":tyan:"
+    },
+    dialogReactionVisible: {
+      type: "boolean",
+      label: "ダイアログのリアクション詳細表示",
+      default: true
+    },
+    dialogReactionCountVisible: {
+      type: "boolean",
+      label: "ダイアログのリアクション数表示",
+      default: true
+    },
     dialogDestroyerLimit: {
       type: "number",
       label: "ダイアログの最大ユーザー数",
       default: 20
-    },
-    resultDestroyerLimit: {
-      type: "number",
-      label: "投稿用テキストの最大ユーザー数",
-      default: 3
     },
     dialogReactionMin: {
       type: "number",
       label: "ダイアログに表示する最低リアクション数",
       default: 1
     },
-    resultReactionMin: {
-      type: "number",
-      label: "投稿用テキストに表示する最低リアクション数",
-      default: 1
+    dialogHeaderText: {
+      type: "string",
+      label: "ダイアログのヘッダーテキスト",
+      default: "<center>$[twitch.speed=0.5s $[rainbow.speed=3s $[flip :murakamisan_tutinoko_omae_wo_miteiru:]:omae_wo_miteiru2::tuuti_hakai::role_notification_destroyer::tuuti_hakai::omae_wo_miteiru2::murakamisan_tutinoko_omae_wo_miteiru:]]</center>"
     },
-    dialogReactionCountVisible: {
+    dialogUserPrefixText: {
+      type: "string",
+      label: "ダイアログのユーザー接頭辞テキスト",
+      default: ":ai_panic_misskeyio:"
+    },
+
+    dialogReactionSeparator: {
+      type: "string",
+      label: "ダイアログのReaction間セパレータ",
+      default: ""
+    },
+    resultReactionVisible: {
       type: "boolean",
-      label: "ダイアログのリアクション数表示",
+      label: "投稿用テキストのリアクション詳細表示",
       default: true
     },
     resultReactionCountVisible: {
@@ -42,45 +63,25 @@
       label: "投稿用テキストのリアクション数表示",
       default: false
     },
-    dialogReactionVisible: {
-      type: "boolean",
-      label: "ダイアログのリアクション詳細表示",
-      default: true
+    resultDestroyerLimit: {
+      type: "number",
+      label: "投稿用テキストの最大ユーザー数",
+      default: 3
     },
-    resultReactionVisible: {
-      type: "boolean",
-      label: "投稿用テキストのリアクション詳細表示",
-      default: true
-    },
-    dialogHeaderText: {
-      type: "string",
-      label: "ダイアログのヘッダーテキスト",
-      default: "<center>$[twitch.speed=0.5s $[rainbow.speed=3s $[flip :murakamisan_tutinoko_omae_wo_miteiru:]:omae_wo_miteiru2::tuuti_hakai::role_notification_destroyer::tuuti_hakai::omae_wo_miteiru2::murakamisan_tutinoko_omae_wo_miteiru:]]</center>"
+    resultReactionMin: {
+      type: "number",
+      label: "投稿用テキストに表示する最低リアクション数",
+      default: 1
     },
     resultHeaderText: {
       type: "string",
       label: "投稿用テキストのヘッダーテキスト",
       default: ":role_notification_destroyer::murakamisan_tutinoko_omae_wo_miteiru:"
     },
-    usernameSuffixText: {
-      type: "string",
-      label: "ユーザー名の語尾につけるテキスト",
-      default: ":tyan:"
-    },
-    dialogUserPrefixText: {
-      type: "string",
-      label: "ダイアログのユーザー接頭辞テキスト",
-      default: ":ai_panic_misskeyio:"
-    },
     resultUserSuffixText: {
       type: "string",
       label: "投稿用テキストのユーザー末尾テキスト",
       default: ":arigatofes:$[flip :meowpensivepray:]"
-    },
-    dialogReactionSeparator: {
-      type: "string",
-      label: "ダイアログのReaction間セパレータ",
-      default: ""
     },
     resultReactionSeparator: {
       type: "string",
