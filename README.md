@@ -20,8 +20,7 @@
 
 ![images](images/image_106.png)
 
-通知を見るreleaseからMisskeyDestroyerWatchPlugin.isをダウンロードし、内容を全てコピーし、`設定 > プラグインのインストール`のテキストエリアに貼付、`インストール`を押してください。  
-<small>※コピーに不備がある場合はインストールに失敗しエラーが表示されると思います。</small>
+5. `通知を見る`がONになっているのを確認し、右上のチェックボタンを押してください。
 
 ![images](images/image_107.png)
 
