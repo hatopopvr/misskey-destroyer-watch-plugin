@@ -1,7 +1,7 @@
 /// @ 0.13.3
 ### {
   name: "通知からリアクションを一覧で表示するプラグイン",
-  version: "0.1.0",
+  version: "0.1.1",
   author: "はとぽぷ",
   description: "直近100件の通知のリアクションを取得",
   permissions: ["read:notifications"],
@@ -87,6 +87,11 @@
       type: "string",
       label: "投稿用テキストでのReaction間セパレータ",
       default: ""
+    },
+    resultFooterTagText: {
+      type: "string",
+      label: "投稿用テキストのフッターに追加するタグテキスト",
+      default: "#MisskeyDestroyerWatch"
     }
   }
 }
@@ -223,6 +228,9 @@
         }
         destroyerCount = destroyerCount + 1
     }
+
+    resultTextList.push(`{config.resultFooterTagText}`)
+
     // 結合
     let dialogText = dialogTextList.join(Str:lf)
     if (overrideResultText == true) {
