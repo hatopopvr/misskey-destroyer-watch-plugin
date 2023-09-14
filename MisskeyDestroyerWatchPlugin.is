@@ -1,7 +1,7 @@
 /// @ 0.13.3
 ### {
   name: "通知からリアクションを一覧で表示するプラグイン",
-  version: "0.1.1",
+  version: "0.1.2",
   author: "はとぽぷ",
   description: "直近100件の通知のリアクションを取得",
   permissions: ["read:notifications"],
@@ -16,6 +16,11 @@
       type: "string",
       label: "ユーザー名の語尾につけるテキスト",
       default: ":tyan:"
+    },
+    reactionReverse: {
+      type: "boolean",
+      label: "リアクションの表示順を反転させます。",
+      default: true
     },
     dialogReactionVisible: {
       type: "boolean",
@@ -47,7 +52,6 @@
       label: "ダイアログのユーザー接頭辞テキスト",
       default: ":ai_panic_misskeyio:"
     },
-
     dialogReactionSeparator: {
       type: "string",
       label: "ダイアログのReaction間セパレータ",
@@ -61,7 +65,7 @@
     resultReactionCountVisible: {
       type: "boolean",
       label: "投稿用テキストのリアクション数表示",
-      default: false
+      default: true
     },
     resultDestroyerLimit: {
       type: "number",
@@ -201,7 +205,11 @@
     each (let userId sortedUserIdList){
         let user = Obj:get(Obj:get(userReactionCount, userId), 'user')
         let userReactions = Obj:get(Obj:get(userReactionCount, userId), 'reactions')
-        // let dialogUserPrefixText = `[{config.urlIcon}]({config.hostUrl}/@{user.username})` // 暫定、リモートユーザー非対応のため修正予定
+
+        if (config.reactionReverse == true) {
+            userReactions.reverse()
+        }
+
         var dialogReactionCountText = userReactions.len
         if (config.dialogReactionCountVisible == false) {
             dialogReactionCountText = ""
