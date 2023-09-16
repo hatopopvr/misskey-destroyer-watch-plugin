@@ -1,9 +1,9 @@
 /// @ 0.13.3
 ### {
-  name: "通知からリアクションを一覧で表示するプラグイン",
-  version: "0.1.2",
+  name: "通知からリアクション等を一覧で表示するプラグイン",
+  version: "0.2.0",
   author: "はとぽぷ",
-  description: "直近100件の通知のリアクションを取得",
+  description: "直近100件の通知のリアクションとリノートを取得",
   permissions: ["read:notifications"],
   config: {
     notificationLimit: {
@@ -12,14 +12,35 @@
       description: "APIの制限により最大100です。",
       default: 100
     },
+    serverName: {
+      type: "string",
+      label: "所属するサーバー名",
+      default: "misskey.io"
+    },
     usernameSuffixText: {
       type: "string",
       label: "ユーザー名の語尾につけるテキスト",
       default: ":tyan:"
     },
+    reactionIsEnable: {
+      type: "boolean",
+      label: "集計にリアクションの数を含める",
+      default: true
+    },
+    renoteIsEnable: {
+      type: "boolean",
+      label: "集計にリノートの数を含める",
+      description: "引用リノートは含みません。",
+      default: true
+    },
+    linkIsEnable: {
+      type: "boolean",
+      label: "リアクションやリノートに元ノートのリンクを付与",
+      default: true
+    },
     reactionReverse: {
       type: "boolean",
-      label: "リアクションの表示順を反転させます。",
+      label: "リアクションの表示順を反転",
       default: true
     },
     dialogReactionVisible: {
@@ -115,15 +136,18 @@
 }
 
 // ユーザーとリアクションを集計
-@aggregateUserReactions(notifications) {
+@aggregateUserReactions(notifications, config) {
     // ユーザーとリアクションを保存するためのオブジェクト
     let userReactionCount = {}
     let userIdList = []
 
     each (let notif notifications) {
-        if (notif.type == 'reaction') {
+        // リアクションを取得
+        if (config.reactionIsEnable == true && notif.type == 'reaction') {
             let userId = notif.user.id
             let userName = notif.user.name
+            let noteId = notif.note.id
+            var reaction = `{notif.reaction}`
 
             // userのリストの追加
             if (!userIdList.incl(userId)) {
@@ -135,8 +159,39 @@
                 Obj:set(userReactionCount, userId, { user: notif.user, reactions: [] })
             }
 
-            // リアクションを取得
-            let reaction = notif.reaction
+            //リアクションを取得
+            if (config.linkIsEnable == true) {
+                reaction = `?[{notif.reaction}](https://{config.serverName}/notes/{noteId})`
+            }
+
+            let userReactions = Obj:get(Obj:get(userReactionCount, userId), 'reactions')
+
+            // リアクションをユーザーに追加
+            userReactions.push(reaction)
+        }
+
+        // リノートを取得
+        if (config.renoteIsEnable == true && notif.type == 'renote') {
+            let userId = notif.user.id
+            let userName = notif.user.name
+            let noteId = notif.note.id
+            var reaction = `:rn:`
+
+            // userのリストの追加
+            if (!userIdList.incl(userId)) {
+                userIdList.push(userId)
+            }
+
+            // userReactionCountにuserIdがなければ初期化
+            if (Obj:has(userReactionCount, userId) == false) {
+                Obj:set(userReactionCount, userId, { user: notif.user, reactions: [] })
+            }
+
+            //リノートを取得
+            if (config.linkIsEnable == true) {
+                reaction = `?[:rn:](https://{config.serverName}/notes/{noteId})`
+            }
+
             let userReactions = Obj:get(Obj:get(userReactionCount, userId), 'reactions')
 
             // リアクションをユーザーに追加
@@ -261,7 +316,7 @@
     let notifications = getNotifications(notificationLimit)
 
     // ユーザーとリアクションを保存するためのオブジェクト
-    let userReactionObj = aggregateUserReactions(notifications)
+    let userReactionObj = aggregateUserReactions(notifications, config)
     let userReactionCount = Obj:get(userReactionObj, "userReactionCount")
     let userIdList = Obj:get(userReactionObj, "userIdList")
     let countList = Obj:get(userReactionObj, "countList")
@@ -279,5 +334,5 @@
     Mk:dialog(null dialogText)
 resultText}
 
-Plugin:register_post_form_action("[投稿]直近100件の通知のリアクションを取得！" @(f u) {u("text" misskeyDestroyerWatch(true))})
-Plugin:register_post_form_action("[閲覧]直近100件の通知のリアクションを取得！" @(f u) {u("text" misskeyDestroyerWatch(f.text))})
+Plugin:register_post_form_action(`[投稿]直近100件の通知を取得！` @(f u) {u("text" misskeyDestroyerWatch(true))})
+Plugin:register_post_form_action(`[閲覧]直近100件の通知を取得！` @(f u) {u("text" misskeyDestroyerWatch(f.text))})

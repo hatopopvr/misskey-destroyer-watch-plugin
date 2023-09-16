@@ -1,5 +1,5 @@
 # misskey-destroyer-watch-plugin
-直近の通知破壊者のリアクションを一覧で見るMisskeyプラグインです。
+直近の通知破壊者のリアクションを一覧で見るMisskeyプラグインです。[AiScript](https://github.com/syuilo/aiscript/tree/master)によって記述されています。
 
 ![images](images/image_101.png)
 
