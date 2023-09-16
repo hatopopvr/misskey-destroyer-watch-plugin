@@ -1,7 +1,7 @@
 /// @ 0.13.3
 ### {
   name: "通知からリアクション等を一覧で表示するプラグイン",
-  version: "0.2.0",
+  version: "0.2.1",
   author: "はとぽぷ",
   description: "直近100件の通知のリアクションとリノートを取得",
   permissions: ["read:notifications"],
@@ -24,12 +24,12 @@
     },
     reactionIsEnable: {
       type: "boolean",
-      label: "集計にリアクションの数を含める",
+      label: "リアクションを取得する",
       default: true
     },
     renoteIsEnable: {
       type: "boolean",
-      label: "集計にリノートの数を含める",
+      label: "リノートを取得する",
       description: "引用リノートは含みません。",
       default: true
     },
