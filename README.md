@@ -49,6 +49,8 @@ max-widthとtext-alignを以下のように修正して適用してください(
 
 ### 投稿用テキストのパラメータ
 ![images](images/image_105.png)
+(↓ v0.3.0で追加)
+![images](images/image_108.png)
 
 ## 作者
 [hatopop_vr](https://misskey.io/@hatopop_vr)
