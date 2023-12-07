@@ -1,16 +1,22 @@
 /// @ 0.13.3
 ### {
   name: "通知からリアクション等を一覧で表示するプラグイン",
-  version: "0.2.1",
+  version: "0.3.0",
   author: "はとぽぷ",
-  description: "直近100件の通知のリアクションとリノートを取得",
+  description: "直近最大300件前後の通知のリアクションとリノートを取得",
   permissions: ["read:notifications"],
   config: {
     notificationLimit: {
-      type: "number",
-      label: "通知の取得数",
-      description: "APIの制限により最大100です。",
-      default: 100
+        type: "number",
+        label: "1回のリクエストで取得する通知の最大数",
+        description: "一度のAPIリクエストで取得できる通知の数。APIの制限により、最大値は100までです。",
+        default: 100
+    },
+    requestMaxCount: {
+        type: "number",
+        label: "APIリクエストの最大試行回数",
+        description: "APIに対するリクエストの最大試行回数。この回数に達した時点で、または結果が0の場合に処理が終了します。",
+        default: 4
     },
     serverName: {
       type: "string",
@@ -91,7 +97,7 @@
     resultDestroyerLimit: {
       type: "number",
       label: "投稿用テキストの最大ユーザー数",
-      default: 3
+      default: 1
     },
     resultReactionMin: {
       type: "number",
@@ -117,6 +123,30 @@
       type: "string",
       label: "投稿用テキストのフッターに追加するタグテキスト",
       default: "#MisskeyDestroyerWatch"
+    },
+    resultTextMaxLength: {
+      type: "number",
+      label: "投稿用テキストの最大長",
+      description: "投稿用テキストで表示する最大文字数を設定します。",
+      default: 2800
+    },
+    resultReactionMaxLength: {
+      type: "number",
+      label: "投稿用リアクション一覧の最大長",
+      description: "投稿用テキストのユーザーのリアクション一覧の最大文字数を設定します。",
+      default: 2500
+    },
+    resultOverflowText: {
+      type: "string",
+      label: "長文超過時の省略テキスト",
+      description: "表示するテキストが設定された最大長を超えた場合に表示されるテキストを設定します。",
+      default: "<small><small>...(一部省略)</small></small>"
+    },
+    excludedReactions: {
+      type: "string",
+      label: "除外するリアクション",
+      description: "表示しないリアクションのワードをカンマ区切りで入力します。例：':ohayoo:,:oyasumisskey:'",
+      default: "ohayo,oyasumi,:sangatsu_tsuitachi_de_gozaimasu:"
     }
   }
 }
@@ -129,11 +159,42 @@
     }
 }
 
+// // APIからの通知を取得
+// @getNotificationsOld(limit) {
+//     let result = Mk:api("i/notifications", {limit: limit})
+//     result
+// }
+
 // APIからの通知を取得
-@getNotifications(limit) {
-    let result = Mk:api("i/notifications", {limit: limit})
-    result
+@getNotifications(limit, requestMaxCount) {
+    let resultList = []
+    var result = Mk:api("i/notifications", {limit: limit})
+
+    each (let res result){
+        resultList.push(res)
+    }
+
+    var until_id = result[result.len - 1].id
+    var count = 1
+
+    loop {
+        if count == requestMaxCount break
+
+        var payload = {limit: limit, untilId: until_id}
+        result = Mk:api("i/notifications", payload)
+        if (result.len == 0) break
+
+        each (let res result){
+            resultList.push(res)
+        }
+
+        until_id = result[result.len - 1].id
+        count = count + 1
+    }
+
+    resultList
 }
+
 
 // ユーザーとリアクションを集計
 @aggregateUserReactions(notifications, config) {
@@ -242,12 +303,40 @@
     sortedObj
 }
 
+// 除外するリアクションを除去
+@filterReactions(userReactions, excludedReactions, config) {
+    let filteredReactions = []
+    each (let reaction userReactions) {
+        var exclude = false
+        each (let exReaction excludedReactions) {
+            if ((reaction).incl(exReaction)) {
+                exclude = true
+                break
+            }
+        }
+        if (!exclude) {
+            var filteredReactionsText = filteredReactions.join(config.resultReactionSeparator)
+            if (config.resultReactionMaxLength > filteredReactionsText.len) {
+                filteredReactions.push(reaction)
+            }
+            else {
+                filteredReactions.push(config.resultOverflowText)
+                break
+            }
+        }
+    }
+    return filteredReactions
+}
+
+// ダイアログと投稿用テキストの作成
 @createUserTextLists(sortedUserIdList, userReactionCount, overrideResultText, config) {
     // -----------------------------------------------------------------
     var resultText = "通知破壊などありません"
     // 注記。
-    var dialogCautionText = "<center><small>※このプラグインは直近最大100件の通知を取得するものです。ユーザーのページへの遷移はユーザー名右クリックで新しいタブを開くなどで飛んでください。</small></center>"
+    var dialogCautionText = "<center><small>※このプラグインは直近最大300件前後の通知を取得するものです。ユーザーのページへの遷移はユーザー名右クリックで新しいタブを開くなどで飛んでください。</small></center>"
     // -----------------------------------------------------------------
+    // 除外するリアクションを配列に変換
+    let excludedReactionsArray = config.excludedReactions.split(",")
 
     // ダイアログと投稿用テキストの作成
     let dialogTextList = []
@@ -260,6 +349,7 @@
     each (let userId sortedUserIdList){
         let user = Obj:get(Obj:get(userReactionCount, userId), 'user')
         let userReactions = Obj:get(Obj:get(userReactionCount, userId), 'reactions')
+        let userHost = user.host
 
         if (config.reactionReverse == true) {
             userReactions.reverse()
@@ -280,24 +370,43 @@
             if (config.dialogReactionVisible == false) {
                 dialogUserReactions = ""
             }
-            dialogTextList.push(`{config.dialogUserPrefixText}@{user.username}:tyan: {dialogReactionCountText} {dialogUserReactions}`)
+            if (userHost == null) {
+                dialogTextList.push(`{config.dialogUserPrefixText}@{user.username}{config.usernameSuffixText}: {dialogReactionCountText} {dialogUserReactions}`)
+            } else {
+                dialogTextList.push(`{config.dialogUserPrefixText}@{user.username}@{userHost}{config.usernameSuffixText}: {dialogReactionCountText} {dialogUserReactions}`)
+            }
+
         }
         if (config.resultDestroyerLimit > destroyerCount && userReactions.len >= config.dialogReactionMin) {
-            let resultUserReactions = userReactions.join(`{config.resultReactionSeparator}`)
+            // リアクションから除外するリアクションを除去
+            let filteredUserReactions = filterReactions(userReactions, excludedReactionsArray, config)
+
+            let resultUserReactions = filteredUserReactions.join(`{config.resultReactionSeparator}`)
             if (config.resultReactionVisible == false) {
                 resultUserReactions = ""
             }
-            resultTextList.push(`@{user.username}:tyan: {resultReactionCountText} {config.resultUserSuffixText}{Str:lf}{resultUserReactions}{Str:lf}`)
+
+            if (userHost == null) {
+                resultTextList.push(`@{user.username}{config.usernameSuffixText}: {resultReactionCountText} {config.resultUserSuffixText}{Str:lf}{resultUserReactions}{Str:lf}`)
+            } else {
+                resultTextList.push(`@{user.username}@{userHost}{config.usernameSuffixText}: {resultReactionCountText} {config.resultUserSuffixText}{Str:lf}{resultUserReactions}{Str:lf}`)
+            }
         }
         destroyerCount = destroyerCount + 1
     }
 
-    resultTextList.push(`{config.resultFooterTagText}`)
-
     // 結合
+    var resultTextMerged = resultTextList.join(Str:lf)
+    if (resultTextMerged.len > config.resultTextMaxLength) {
+        resultTextMerged = resultTextMerged.slice(0, config.resultTextMaxLength)
+        resultTextMerged = `{resultTextMerged}{config.resultOverflowText}`
+    }
+
+    // 最終的なダイアログテキスト
     let dialogText = dialogTextList.join(Str:lf)
     if (overrideResultText == true) {
-        resultText = resultTextList.join(Str:lf)
+        // タグ付与
+        resultText = `{resultTextMerged}{Str:lf}{config.resultFooterTagText}`
     } else {
         resultText = overrideResultText
     }
@@ -307,13 +416,14 @@
     resultTextObj
 }
 
+// メイン処理
 @misskeyDestroyerWatch(overrideResultText) {
     // 設定を取得
     let config = Plugin:config
     // 通知の取得数です。APIの制限により現在は最大100です。
     var notificationLimit = getConfigValue(config.notificationLimit, 100)
     // Misskey APIから通知の取得
-    let notifications = getNotifications(notificationLimit)
+    let notifications = getNotifications(notificationLimit, config.requestMaxCount)
 
     // ユーザーとリアクションを保存するためのオブジェクト
     let userReactionObj = aggregateUserReactions(notifications, config)
@@ -334,5 +444,5 @@
     Mk:dialog(null dialogText)
 resultText}
 
-Plugin:register_post_form_action(`[投稿]直近100件の通知を取得！` @(f u) {u("text" misskeyDestroyerWatch(true))})
-Plugin:register_post_form_action(`[閲覧]直近100件の通知を取得！` @(f u) {u("text" misskeyDestroyerWatch(f.text))})
+Plugin:register_post_form_action(`[投稿]直近の通知を取得！` @(f u) {u("text" misskeyDestroyerWatch(true))})
+Plugin:register_post_form_action(`[閲覧]直近の通知を取得！` @(f u) {u("text" misskeyDestroyerWatch(f.text))})
