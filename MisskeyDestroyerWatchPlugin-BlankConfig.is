@@ -21,7 +21,7 @@
     usernameSuffixText: {
       type: "string",
       label: "ユーザー名の語尾につけるテキスト",
-      default: ":tyan:"
+      default: ""
     },
     reactionIsEnable: {
       type: "boolean",
@@ -67,12 +67,12 @@
     dialogHeaderText: {
       type: "string",
       label: "ダイアログのヘッダーテキスト",
-      default: "<center>$[twitch.speed=0.5s $[rainbow.speed=3s $[flip :murakamisan_tutinoko_omae_wo_miteiru:]:omae_wo_miteiru2::tuuti_hakai::role_notification_destroyer::tuuti_hakai::omae_wo_miteiru2::murakamisan_tutinoko_omae_wo_miteiru:]]</center>"
+      default: ""
     },
     dialogUserPrefixText: {
       type: "string",
       label: "ダイアログのユーザー接頭辞テキスト",
-      default: ":ai_panic_misskeyio:"
+      default: ""
     },
     dialogReactionSeparator: {
       type: "string",
@@ -102,12 +102,12 @@
     resultHeaderText: {
       type: "string",
       label: "投稿用テキストのヘッダーテキスト",
-      default: ":role_notification_destroyer::murakamisan_tutinoko_omae_wo_miteiru:"
+      default: ""
     },
     resultUserSuffixText: {
       type: "string",
       label: "投稿用テキストのユーザー末尾テキスト",
-      default: ":arigatofes:$[flip :meowpensivepray:]"
+      default: ""
     },
     resultReactionSeparator: {
       type: "string",
@@ -141,7 +141,7 @@
       type: "string",
       label: "除外するリアクション",
       description: "表示しないリアクションのワードをカンマ区切りで入力します。例：':ohayoo:,:oyasumisskey:'",
-      default: "ohayo,ohannyo,oyasu,:sangatsu_tsuitachi_de_gozaimasu:"
+      default: ""
     }
   }
 }
